@@ -1,0 +1,15 @@
+[package]
+# needs a better name in the future
+name = "egui-visuals-utility"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+eframe = {version = "0.20.1", features = ["persistence"]}
+serde = {version = "1.0.151", features = ["derive"]}
+home = "0.5.4"
+ron = "0.8.0"
+
+[profile.release]
+opt = 3
+lot = "thin"
