@@ -12,4 +12,4 @@ ron = "0.8.0"
 
 [profile.release]
 opt = 3
-lot = "thin"
+lto = "thin"
