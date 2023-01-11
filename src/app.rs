@@ -1,4 +1,4 @@
-use eframe::{self};
+use eframe;
 use serde;
 use home;
 
@@ -7,14 +7,14 @@ mod editor;
 mod demo_widgets;
 mod simplified;
 mod file_dialog;
-mod load_theme;
+mod theme_updater;
 
 
-#[derive(serde::Deserialize, serde::Serialize, PartialEq)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, Clone)]
 pub enum Mode {
     Preview,
     Editor,
-    Simplified
+    Simplified(simplified::Settings),
 }
 
 impl Default for Mode {
@@ -31,7 +31,6 @@ pub struct Theme {
     author: String,
     description: String,
     visuals: eframe::egui::Visuals,
-    scale: f64,
 }
 
 impl Default for Theme {
@@ -41,7 +40,6 @@ impl Default for Theme {
             author: String::from("Author"),
             description: String::from("Description"),
             visuals: eframe::egui::Visuals::default(),
-            scale: 1.,
         }
     }
 }
@@ -51,6 +49,7 @@ impl Default for Theme {
 pub enum FileDialog {
     Save(String),
     Select(String),
+    JustVisuals(String),
     None,
 }
 
@@ -93,7 +92,7 @@ pub struct AppState {
     mode: Mode,
     themes: Vec<Theme>,
     file_dialog: FileDialog,
-    eq: Theme,
+    hash: u64
 }
 
 impl Default for AppState {
@@ -108,18 +107,16 @@ impl Default for AppState {
                     author: "from standard egui crate".to_string(),
                     description: "The standard dark theme for egui, this just sets Visuals::dark()".to_string(),
                     visuals: eframe::egui::Visuals::dark(),
-                    scale: 1.,
                 },
                 Theme {
                     name: "egui default light mode".to_string(),
                     author: "from standard egui crate".to_string(),
                     description: "The standard light theme for egui, this just sets Visuals::light()".to_string(),
                     visuals: eframe::egui::Visuals::light(),
-                    scale: 1.,
                 },
             ],
             file_dialog: FileDialog::default(),
-            eq: Theme::default(),
+            hash: 0,
         }
     }
 }
@@ -127,7 +124,7 @@ impl Default for AppState {
 impl AppState {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         
-        load_theme::load_theme(& cc.egui_ctx);
+        theme_updater::load_theme(& cc.egui_ctx);
         
         if let Some(storage) = cc.storage {
             return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
@@ -135,6 +132,8 @@ impl AppState {
         Default::default()
     }
 }
+
+
 
 impl eframe::App for AppState {
     
@@ -144,13 +143,11 @@ impl eframe::App for AppState {
 
 
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
-        let Self { eq, demo, mode, themes, selected_theme, file_dialog} = self;
+        let Self { hash, demo, mode, themes, selected_theme, file_dialog} = self;
         
-        if eq != &mut themes[selected_theme.clone()] {
-            ctx.set_visuals(themes[selected_theme.clone()].visuals.clone());
-            *eq = themes[selected_theme.clone()].clone();
-            load_theme::load_theme(ctx);
-        }
+        if theme_updater::update_theme(themes[selected_theme.clone()].visuals.clone(), hash) == true {
+            theme_updater::load_theme(ctx);
+        };
         
         eframe::egui::TopBottomPanel::top("menu").show(ctx, |ui| {
             eframe::egui::menu::bar(ui, |ui| {
@@ -161,11 +158,15 @@ impl eframe::App for AppState {
                     if ui.button("Save").clicked() {
                         *file_dialog = FileDialog::Save(home::home_dir().unwrap().to_str().unwrap().to_string());
                     }
+                    if ui.button("Save Just Visuals").clicked() {
+                        *file_dialog = FileDialog::Save(home::home_dir().unwrap().to_str().unwrap().to_string());
+                    }
                 });
                 
                 ui.menu_button("Mode", |ui| {
                     ui.radio_value(mode, Mode::Preview, "Preview Themes");
-                    ui.radio_value(mode, Mode::Editor, "Edit Theme");
+                    ui.radio_value(mode, Mode::Simplified(simplified::Settings::default()), "Simplified Theme Creator");
+                    ui.radio_value(mode, Mode::Editor, "Theme Editor");
                 });
                 ui.toggle_value(&mut demo.demo_open, "Demo Widgets");
             })
@@ -176,18 +177,21 @@ impl eframe::App for AppState {
         if demo.demo_open == true {
             demo_widgets::demo_widgets(ctx, demo);
         }
+        let mode_temp = &mut mode.clone();
         
-        match mode {
+        match mode_temp {
             Mode::Preview => {
                 preview::preview(mode, themes, selected_theme, ctx)
             }
             Mode::Editor => {
                 editor::editor(&mut themes[selected_theme.clone()], ctx, selected_theme.clone())
             }
-            Mode::Simplified => {
-                
+            Mode::Simplified(settings) => {
+                simplified::simplified(settings, themes, ctx, mode)
             }
         }
+        
+        *mode = mode_temp.clone();
         
     }
 }
