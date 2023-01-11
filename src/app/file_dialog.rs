@@ -20,6 +20,20 @@ pub fn file_dialog(file_dialog: &mut FileDialog, themes: &mut Vec<Theme>, select
                 });
             });
         } 
+        FileDialog::JustVisuals(path) => {
+            eframe::egui::Window::new("Save theme").show(ctx, |ui| {
+                ui.add(eframe::egui::TextEdit::singleline(path));
+                ui.horizontal(|ui| {
+                    if ui.button("Save").clicked() {
+                        std::fs::write(path, ron::to_string(&themes[selected_theme].visuals).unwrap());
+                        close = true;
+                    }
+                    if ui.button("Close").clicked() {
+                        close = true;
+                    }
+                });
+            });
+        }
         FileDialog::Select(path) => {
             eframe::egui::Window::new("Select theme").show(ctx, |ui| {
                 ui.add(eframe::egui::TextEdit::singleline(path));

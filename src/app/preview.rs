@@ -2,7 +2,7 @@ use eframe;
 use home;
 use ron::{self, error::SpannedError};
 
-use super::{Mode, Theme};
+use super::{Mode, Theme, simplified::Settings};
 
 pub fn preview(mode: &mut Mode, themes: &mut Vec<Theme>, selected_theme: &mut usize, ctx: & eframe::egui::Context) {
     eframe::egui::CentralPanel::default().show(ctx, |ui| {
@@ -16,17 +16,12 @@ pub fn preview(mode: &mut Mode, themes: &mut Vec<Theme>, selected_theme: &mut us
                         });
                     });
                 });
-                let home = home::home_dir().unwrap().to_str().unwrap().to_string();
                 if frame.response.interact(eframe::egui::Sense::click()).clicked() {
-                    std::fs::write(format!("{}/.egui-theme", home), ron::to_string(& theme.visuals).unwrap());
                     *selected_theme = i;
-                    load_theme(ctx)
                 };
                 if frame.response.interact(eframe::egui::Sense::click()).double_clicked() {
-                    std::fs::write(format!("{}/.egui-theme", home), ron::to_string(& theme.visuals).unwrap());
                     *mode = Mode::Editor;
                     *selected_theme = i;
-                    load_theme(ctx)
                 };
             }
             else {
@@ -41,23 +36,20 @@ pub fn preview(mode: &mut Mode, themes: &mut Vec<Theme>, selected_theme: &mut us
                         })
                     });
                 });
-                
-                let home = home::home_dir().unwrap().to_str().unwrap().to_string();
                 if frame.response.interact(eframe::egui::Sense::click()).clicked() {
-                    std::fs::write(format!("{}/.egui-theme", home), ron::to_string(& theme.visuals).unwrap());
                     *selected_theme = i;
-                    load_theme(ctx)
                 };
                 if frame.response.interact(eframe::egui::Sense::click()).double_clicked() {
-                    std::fs::write(format!("{}/.egui-theme", home), ron::to_string(& theme.visuals).unwrap());
                     *mode = Mode::Editor;
                     *selected_theme = i;
-                    load_theme(ctx)
                 };
             }
         }
         if ui.button("New Theme").clicked() {
             themes.push(Theme::default())
+        }
+        if ui.button("Theme Wizard").clicked() {
+            *mode = Mode::Simplified(Settings::default());
         }
         if remove.0 == true {
             *selected_theme = remove.1 - 1;
