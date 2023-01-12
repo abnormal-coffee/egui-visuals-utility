@@ -51,6 +51,12 @@ pub fn preview(mode: &mut Mode, themes: &mut Vec<Theme>, selected_theme: &mut us
         if ui.button("Theme Wizard").clicked() {
             *mode = Mode::Simplified(Settings::default());
         }
+        
+        ui.collapsing("Visuals struct as text", |ui| {
+            let mut temp = &mut format!("{:?}", themes[selected_theme.clone()].visuals).clone();
+            ui.add(eframe::egui::TextEdit::multiline(temp).desired_width(1000.));
+        });
+        
         if remove.0 == true {
             *selected_theme = remove.1 - 1;
             themes.remove(remove.1);
