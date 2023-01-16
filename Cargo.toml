@@ -7,6 +7,7 @@ edition = "2021"
 [dependencies]
 eframe = {version = "0.20.1", features = ["persistence"]}
 serde = {version = "1.0.151", features = ["derive"]}
+bincode = "*"
 home = "0.5.4"
 ron = "0.8.0"
 
